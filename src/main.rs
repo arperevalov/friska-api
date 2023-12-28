@@ -8,10 +8,26 @@ struct AppState {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+struct ListBody {
+    title: String,
+    user_id: Option<i32>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 struct List {
     id: i32,
     title: String,
     user_id: Option<i32>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct CardBody {
+    title: String,
+    exp_date: String,
+    left_count: i32,
+    units: String,
+    list_id: i32,
+    user_id: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -43,6 +59,15 @@ async fn lists_get(app_state: web::Data<AppState>) -> impl Responder {
     HttpResponse::Ok().json(serde_json::json!(result))
 }
 
+#[post("/lists")]
+async fn lists_post(body: web::Json<ListBody>, app_state: web::Data<AppState>) -> impl Responder {
+    let result = sqlx::query_as!(List, "INSERT into lists(title, user_id) values($1, $2) returning *", body.title.to_string(), body.user_id)
+    .fetch_one(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok().json(serde_json::json!(result))
+}
+
 #[get("/cards")]
 async fn cards_get(app_state: web::Data<AppState>) -> impl Responder {
     let result = sqlx::query_as!(Card, "SELECT * from cards")
@@ -53,8 +78,17 @@ async fn cards_get(app_state: web::Data<AppState>) -> impl Responder {
 }
 
 #[post("/cards")]
-async fn cards_post(body: web::Json<Card>, app_state: web::Data<AppState>) -> impl Responder {
-    let result = sqlx::query_as!(Card, "SELECT * from cards")
+async fn cards_post(body: web::Json<CardBody>, app_state: web::Data<AppState>) -> impl Responder {
+    let date = chrono::NaiveDateTime::parse_from_str(body.exp_date.as_str(), "%Y-%m-%d %H:%M:%S").unwrap();
+
+    let result = sqlx::query_as!(Card, "INSERT into cards(title, exp_date, left_count, units, list_id, user_id) values($1, $2, $3, $4, $5, $6) returning *", 
+        body.title.to_string(),
+        date,
+        body.left_count,
+        body.units,
+        body.list_id,
+        body.user_id
+    )
     .fetch_all(&app_state.db)
     .await.unwrap();
 
@@ -84,6 +118,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(actix_web::web::Data::new(AppState{db: pool.clone()}))
             .service(lists_get)
+            .service(lists_post)
             .service(cards_get)
             .service(cards_post)
     })

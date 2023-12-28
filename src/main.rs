@@ -42,11 +42,18 @@ struct Card {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+struct UserBody {
+    username: String,
+    email: String,
+    password_hash: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 struct User {
     id: i32,
     username: String,
     email: String,
-    password_hash: i32,
+    password_hash: String,
     created_at: chrono::NaiveDateTime,
 }
 
@@ -95,6 +102,28 @@ async fn cards_post(body: web::Json<CardBody>, app_state: web::Data<AppState>) -
     HttpResponse::Ok().json(serde_json::json!(result))
 }
 
+#[get("/users")]
+async fn users_get(app_state: web::Data<AppState>) -> impl Responder {
+    let result = sqlx::query_as!(User, "SELECT * from users")
+    .fetch_all(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok().json(serde_json::json!(result))
+}
+
+#[post("/users")]
+async fn users_post(body: web::Json<UserBody>, app_state: web::Data<AppState>) -> impl Responder {
+    let result = sqlx::query_as!(User, "INSERT into users(username, email, password_hash) values($1, $2, $3) returning *", 
+        body.username.to_string(),
+        body.email.to_string(),
+        body.password_hash.to_string()
+    )
+    .fetch_all(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok().json(serde_json::json!(result))
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
@@ -121,6 +150,8 @@ async fn main() -> std::io::Result<()> {
             .service(lists_post)
             .service(cards_get)
             .service(cards_post)
+            .service(users_get)
+            .service(users_post)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

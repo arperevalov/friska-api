@@ -1,0 +1,9 @@
+CREATE TABLE cards (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    exp_date TIMESTAMP NOT NULL,
+    left_count INTEGER NOT NULL,
+    units VARCHAR(50) NOT NULL,
+    list_id INTEGER REFERENCES lists(id) ON DELETE CASCADE NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL
+);

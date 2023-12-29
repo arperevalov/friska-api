@@ -1,4 +1,4 @@
-use actix_web::{get, post, App, HttpResponse, HttpServer, Responder, web};
+use actix_web::{get, post, put, App, HttpResponse, HttpServer, Responder, web};
 use dotenv::dotenv;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, types::chrono};
 use serde::{Deserialize, Serialize};
@@ -49,6 +49,14 @@ struct UserBody {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+struct UserPublic {
+    id: i32,
+    username: String,
+    email: String,
+    created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 struct User {
     id: i32,
     username: String,
@@ -60,6 +68,16 @@ struct User {
 #[get("/lists")]
 async fn lists_get(app_state: web::Data<AppState>) -> impl Responder {
     let result = sqlx::query_as!(List, "SELECT * from lists")
+    .fetch_all(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok().json(serde_json::json!(result))
+}
+
+#[get("/lists/{id}")]
+async fn lists_get_with_id(path: web::Path<i32>, app_state: web::Data<AppState>) -> impl Responder {
+    let id = path.into_inner();
+    let result = sqlx::query_as!(List, "SELECT * from lists where id=$1", id)
     .fetch_all(&app_state.db)
     .await.unwrap();
 
@@ -78,6 +96,16 @@ async fn lists_post(body: web::Json<ListBody>, app_state: web::Data<AppState>) -
 #[get("/cards")]
 async fn cards_get(app_state: web::Data<AppState>) -> impl Responder {
     let result = sqlx::query_as!(Card, "SELECT * from cards")
+    .fetch_all(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok().json(serde_json::json!(result))
+}
+
+#[get("/cards/{id}")]
+async fn cards_get_with_id(path: web::Path<i32>, app_state: web::Data<AppState>) -> impl Responder {
+    let id = path.into_inner();
+    let result = sqlx::query_as!(Card, "SELECT * from cards where id=$1", id)
     .fetch_all(&app_state.db)
     .await.unwrap();
 
@@ -104,7 +132,7 @@ async fn cards_post(body: web::Json<CardBody>, app_state: web::Data<AppState>) -
 
 #[get("/users")]
 async fn users_get(app_state: web::Data<AppState>) -> impl Responder {
-    let result = sqlx::query_as!(User, "SELECT * from users")
+    let result = sqlx::query_as!(UserPublic, "SELECT id, username, email, created_at from users")
     .fetch_all(&app_state.db)
     .await.unwrap();
 
@@ -147,9 +175,11 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(actix_web::web::Data::new(AppState{db: pool.clone()}))
             .service(lists_get)
+            .service(lists_get_with_id)
             .service(lists_post)
             .service(cards_get)
             .service(cards_post)
+            .service(cards_get_with_id)
             .service(users_get)
             .service(users_post)
     })

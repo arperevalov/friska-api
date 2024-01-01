@@ -2,6 +2,7 @@ mod routes;
 mod models;
 
 use actix_web::{App, HttpServer};
+use actix_cors::Cors;
 use dotenv::dotenv;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -19,6 +20,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let app_port: u16 = std::env::var("APP_PORT").expect("APP_PORT must be set").parse().unwrap();
 
     let pool = match PgPoolOptions::new().max_connections(10).connect(&database_url).await {
         Ok(pool) => {
@@ -32,8 +34,14 @@ async fn main() -> std::io::Result<()> {
     };
 
     HttpServer::new(move || {
-        
+        let cors = Cors::default()
+        .allowed_origin("http://localhost:3000")
+        .allow_any_method()
+        .allow_any_header()
+        .max_age(3600);
+
         App::new()
+            .wrap(cors)
             .app_data(actix_web::web::Data::new(AppState{db: pool.clone()}))
             .service(lists_get)
             .service(lists_get_with_id)
@@ -50,7 +58,7 @@ async fn main() -> std::io::Result<()> {
             .service(users_put)
             .service(users_delete)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", app_port))?
     .run()
     .await
 }

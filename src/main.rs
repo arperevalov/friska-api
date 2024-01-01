@@ -93,6 +93,16 @@ async fn lists_post(body: web::Json<ListBody>, app_state: web::Data<AppState>) -
     HttpResponse::Ok().json(serde_json::json!(result))
 }
 
+#[put("/lists/{id}")]
+async fn lists_put(path: web::Path<i32>, body: web::Json<ListBody>, app_state: web::Data<AppState>) -> impl Responder {
+    let id = path.into_inner();
+    let result = sqlx::query_as!(List, "UPDATE lists set title = $1, user_id = $2 where id= $3 returning *", body.title.to_string(), body.user_id, id)
+    .fetch_one(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok().json(serde_json::json!(result))
+}
+
 #[get("/cards")]
 async fn cards_get(app_state: web::Data<AppState>) -> impl Responder {
     let result = sqlx::query_as!(Card, "SELECT * from cards")
@@ -130,6 +140,25 @@ async fn cards_post(body: web::Json<CardBody>, app_state: web::Data<AppState>) -
     HttpResponse::Ok().json(serde_json::json!(result))
 }
 
+#[put("/cards/{id}")]
+async fn cards_put(path: web::Path<i32>, body: web::Json<CardBody>, app_state: web::Data<AppState>) -> impl Responder {
+    let id = path.into_inner();
+    let date = chrono::NaiveDateTime::parse_from_str(body.exp_date.as_str(), "%Y-%m-%d %H:%M:%S").unwrap();
+
+    let result = sqlx::query_as!(Card, "UPDATE cards set title = $1, exp_date = $2, left_count = $3, units = $4, list_id = $5, user_id = $6 where id = $7 returning *", 
+    body.title.to_string(),
+    date,
+    body.left_count,
+    body.units,
+    body.list_id,
+    body.user_id, 
+    id)
+    .fetch_one(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok().json(serde_json::json!(result))
+}
+
 #[get("/users")]
 async fn users_get(app_state: web::Data<AppState>) -> impl Responder {
     let result = sqlx::query_as!(UserPublic, "SELECT id, username, email, created_at from users")
@@ -145,6 +174,22 @@ async fn users_post(body: web::Json<UserBody>, app_state: web::Data<AppState>) -
         body.username.to_string(),
         body.email.to_string(),
         body.password_hash.to_string()
+    )
+    .fetch_all(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok().json(serde_json::json!(result))
+}
+
+#[put("/users/{id}")]
+async fn users_put(path: web::Path<i32>, body: web::Json<UserBody>, app_state: web::Data<AppState>) -> impl Responder {
+    let id = path.into_inner();
+
+    let result = sqlx::query_as!(User, "UPDATE users set username = $1, email = $2, password_hash = $3 where id = $4 returning *", 
+        body.username.to_string(),
+        body.email.to_string(),
+        body.password_hash.to_string(),
+        id
     )
     .fetch_all(&app_state.db)
     .await.unwrap();
@@ -177,11 +222,14 @@ async fn main() -> std::io::Result<()> {
             .service(lists_get)
             .service(lists_get_with_id)
             .service(lists_post)
+            .service(lists_put)
             .service(cards_get)
             .service(cards_post)
+            .service(cards_put)
             .service(cards_get_with_id)
             .service(users_get)
             .service(users_post)
+            .service(users_put)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

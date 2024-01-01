@@ -1,4 +1,4 @@
-use actix_web::{get, post, put, App, HttpResponse, HttpServer, Responder, web};
+use actix_web::{get, post, put, delete, App, HttpResponse, HttpServer, Responder, web};
 use dotenv::dotenv;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, types::chrono};
 use serde::{Deserialize, Serialize};
@@ -103,6 +103,17 @@ async fn lists_put(path: web::Path<i32>, body: web::Json<ListBody>, app_state: w
     HttpResponse::Ok().json(serde_json::json!(result))
 }
 
+#[delete("/lists/{id}")]
+async fn lists_delete(path: web::Path<i32>, app_state: web::Data<AppState>) -> impl Responder {
+    let id = path.into_inner();
+
+    let _result = sqlx::query_as!(List, "DELETE from lists where id = $1", id)
+    .fetch_optional(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok()
+}
+
 #[get("/cards")]
 async fn cards_get(app_state: web::Data<AppState>) -> impl Responder {
     let result = sqlx::query_as!(Card, "SELECT * from cards")
@@ -159,6 +170,17 @@ async fn cards_put(path: web::Path<i32>, body: web::Json<CardBody>, app_state: w
     HttpResponse::Ok().json(serde_json::json!(result))
 }
 
+#[delete("/cards/{id}")]
+async fn cards_delete(path: web::Path<i32>, app_state: web::Data<AppState>) -> impl Responder {
+    let id = path.into_inner();
+
+    let _result = sqlx::query_as!(Card, "DELETE from cards where id = $1", id)
+    .fetch_optional(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok()
+}
+
 #[get("/users")]
 async fn users_get(app_state: web::Data<AppState>) -> impl Responder {
     let result = sqlx::query_as!(UserPublic, "SELECT id, username, email, created_at from users")
@@ -197,6 +219,17 @@ async fn users_put(path: web::Path<i32>, body: web::Json<UserBody>, app_state: w
     HttpResponse::Ok().json(serde_json::json!(result))
 }
 
+#[delete("/users/{id}")]
+async fn users_delete(path: web::Path<i32>, app_state: web::Data<AppState>) -> impl Responder {
+    let id = path.into_inner();
+
+    let _result = sqlx::query_as!(User, "DELETE from users where id = $1", id)
+    .fetch_optional(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok()
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
@@ -223,13 +256,16 @@ async fn main() -> std::io::Result<()> {
             .service(lists_get_with_id)
             .service(lists_post)
             .service(lists_put)
+            .service(lists_delete)
             .service(cards_get)
             .service(cards_post)
             .service(cards_put)
             .service(cards_get_with_id)
+            .service(cards_delete)
             .service(users_get)
             .service(users_post)
             .service(users_put)
+            .service(users_delete)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

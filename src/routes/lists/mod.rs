@@ -1,6 +1,6 @@
 use crate::models::lists::{ListBody, List};
 use crate::AppState;
-use actix_web::{get, post, put, delete, App, HttpResponse, HttpServer, Responder, web};
+use actix_web::{get, post, put, delete, HttpResponse, Responder, web};
 
 
 #[get("/lists")]

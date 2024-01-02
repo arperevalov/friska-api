@@ -13,12 +13,14 @@ pub async fn users_get(app_state: web::Data<AppState>) -> impl Responder {
 
 #[post("/users")]
 pub async fn users_post(body: web::Json<UserBody>, app_state: web::Data<AppState>) -> impl Responder {
+    let password_hash = body.password.to_string();
+
     let result = sqlx::query_as!(User, "INSERT into users(username, email, password_hash) values($1, $2, $3) returning *", 
         body.username.to_string(),
         body.email.to_string(),
-        body.password_hash.to_string()
+        password_hash
     )
-    .fetch_all(&app_state.db)
+    .fetch_one(&app_state.db)
     .await.unwrap();
 
     HttpResponse::Ok().json(serde_json::json!(result))
@@ -27,14 +29,15 @@ pub async fn users_post(body: web::Json<UserBody>, app_state: web::Data<AppState
 #[put("/users/{id}")]
 pub async fn users_put(path: web::Path<i32>, body: web::Json<UserBody>, app_state: web::Data<AppState>) -> impl Responder {
     let id = path.into_inner();
+    let password_hash = body.password.to_string();
 
     let result = sqlx::query_as!(User, "UPDATE users set username = $1, email = $2, password_hash = $3 where id = $4 returning *", 
         body.username.to_string(),
         body.email.to_string(),
-        body.password_hash.to_string(),
+        password_hash,
         id
     )
-    .fetch_all(&app_state.db)
+    .fetch_one(&app_state.db)
     .await.unwrap();
 
     HttpResponse::Ok().json(serde_json::json!(result))

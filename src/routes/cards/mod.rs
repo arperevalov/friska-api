@@ -26,6 +26,30 @@ async fn cards_get_with_id(req: HttpRequest, path: web::Path<i32>, app_state: we
     HttpResponse::Ok().json(serde_json::json!(result))
 }
 
+#[put("/cards/{id}/increment")]
+async fn cards_increment_put(req: HttpRequest, path: web::Path<i32>, app_state: web::Data<AppState>) -> impl Responder {
+    let user_id = req.extensions().get::<Claims>().unwrap().id;
+    let id = path.into_inner();
+
+    let result = sqlx::query_as!(Card, "UPDATE cards set left_count = left_count + 1 where id = $1 and user_id = $2 returning *", id, user_id)
+    .fetch_one(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok().json(serde_json::json!(result))
+}
+
+#[put("/cards/{id}/decrement")]
+async fn cards_decrement_put(req: HttpRequest, path: web::Path<i32>, app_state: web::Data<AppState>) -> impl Responder {
+    let user_id = req.extensions().get::<Claims>().unwrap().id;
+    let id = path.into_inner();
+
+    let result = sqlx::query_as!(Card, "UPDATE cards set left_count = left_count - 1 where id = $1 and user_id = $2 returning *", id, user_id)
+    .fetch_one(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok().json(serde_json::json!(result))
+}
+
 #[post("/cards")]
 async fn cards_post(req: HttpRequest, body: web::Json<CardBody>, app_state: web::Data<AppState>) -> impl Responder {
     let user_id = req.extensions().get::<Claims>().unwrap().id;

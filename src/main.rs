@@ -14,7 +14,7 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 use routes::lists::{lists_delete, lists_get, lists_get_with_id, lists_post, lists_put};
 use routes::users::{users_delete, users_get, users_post, users_put, users_current_get};
-use routes::cards::{cards_delete, cards_get, cards_get_with_id, cards_post, cards_put};
+use routes::cards::{cards_delete, cards_get, cards_get_with_id, cards_post, cards_put, cards_increment_put, cards_decrement_put};
 use routes::auth::{auth_sign_in_post, auth_sign_up_post};
 
 use crate::models::auth::Claims;
@@ -90,6 +90,8 @@ async fn main() -> std::io::Result<()> {
                 .service(cards_put)
                 .service(cards_get_with_id)
                 .service(cards_delete)
+                .service(cards_increment_put)
+                .service(cards_decrement_put)
                 .service(users_get)
                 .service(users_post)
                 .service(users_put)

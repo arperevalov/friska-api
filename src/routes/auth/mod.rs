@@ -46,13 +46,16 @@ async fn auth_sign_up_post(body: web::Json<CredentialsSignUp>, app_state: web::D
 
 fn generate_token(id: i32, username: String) -> String {
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    let jwt_lifetime: i64 = std::env::var("JWT_LIFETIME").expect("JWT_LIFETIME must be set").parse().unwrap();
     let header = jsonwebtoken::Header::new(Algorithm::HS256);
+
+    let lifetime = chrono::Duration::days(jwt_lifetime).num_seconds();
 
     let encoding_key = EncodingKey::from_secret(jwt_secret.as_bytes());
     let data = Claims {
         id: id,
         username: username,
-        exp: get_current_timestamp()
+        exp: get_current_timestamp() + lifetime as u64,
     };
     encode(&header, &data, &encoding_key).unwrap()
 }

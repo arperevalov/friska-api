@@ -34,7 +34,7 @@ async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<Servi
     
     match token_message {
         Ok(value) => {
-            req.extensions_mut().insert(value);
+            req.extensions_mut().insert(value.claims);
             Ok(req)
         },
         Err(_) => {

@@ -5,6 +5,7 @@ pub struct UserBody {
     pub username: String,
     pub email: String,
     pub password: String,
+    pub best_before: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -13,6 +14,7 @@ pub struct UserPublic {
     pub username: String,
     pub email: String,
     pub created_at: chrono::NaiveDateTime,
+    pub best_before: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -22,4 +24,5 @@ pub struct User {
     pub email: String,
     pub password_hash: String,
     pub created_at: chrono::NaiveDateTime,
+    pub best_before: i32,
 }

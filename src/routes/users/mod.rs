@@ -1,11 +1,23 @@
+use crate::models::auth::Claims;
 use crate::models::users::{User, UserBody, UserPublic};
 use crate::AppState;
-use actix_web::{get, post, put, delete, HttpResponse, Responder, web};
+use actix_web::{get, post, put, delete, HttpResponse, Responder, web, HttpRequest, HttpMessage};
 
 #[get("/users")]
 pub async fn users_get(app_state: web::Data<AppState>) -> impl Responder {
     let result = sqlx::query_as!(UserPublic, "SELECT id, username, email, created_at, best_before from users")
     .fetch_all(&app_state.db)
+    .await.unwrap();
+
+    HttpResponse::Ok().json(serde_json::json!(result))
+}
+
+#[get("/users/current")]
+pub async fn users_current_get(req: HttpRequest, app_state: web::Data<AppState>) -> impl Responder {
+    let user_id = req.extensions().get::<Claims>().unwrap().id;
+
+    let result = sqlx::query_as!(UserPublic, "SELECT id, username, email, created_at, best_before from users where id = $1", user_id)
+    .fetch_one(&app_state.db)
     .await.unwrap();
 
     HttpResponse::Ok().json(serde_json::json!(result))

@@ -1,6 +1,7 @@
 use crate::models::auth::{CredentialsSignIn, CredentialsSignUp, Claims};
 use crate::AppState;
 use crate::models::users::User;
+use crate::hasher::{hash_password, verify_password_hash};
 use actix_web::{post, HttpResponse, Responder, web};
 use jsonwebtoken::{encode, EncodingKey, Algorithm, get_current_timestamp};
 
@@ -11,7 +12,7 @@ async fn auth_sign_in_post(body: web::Json<CredentialsSignIn>, app_state: web::D
 
     match query {
         Ok(value) => {
-            if value.password_hash == body.password {
+            if verify_password_hash(body.password.as_bytes(), &value.password_hash) {
                 let token = generate_token(value.id, value.username);
 
                 HttpResponse::Ok().json(serde_json::json!({"token": token}))
@@ -30,7 +31,7 @@ async fn auth_sign_up_post(body: web::Json<CredentialsSignUp>, app_state: web::D
     let query = sqlx::query_as!(User, "INSERT into users(username, email, password_hash) values($1, $2, $3) returning *",
         body.username.to_string(),
         body.email.to_string(),
-        body.password.to_string())
+        hash_password(body.password.to_string()))
     .fetch_one(&app_state.db).await;
 
     match query {

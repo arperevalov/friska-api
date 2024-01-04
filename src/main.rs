@@ -1,5 +1,6 @@
 mod routes;
 mod models;
+mod hasher;
 
 use actix_web::dev::ServiceRequest;
 use actix_web::{web, HttpMessage};

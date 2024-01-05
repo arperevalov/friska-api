@@ -5,7 +5,7 @@ use actix_web::{get, post, put, delete, HttpResponse, Responder, web, HttpReques
 
 #[get("/users")]
 pub async fn users_get(app_state: web::Data<AppState>) -> impl Responder {
-    let result = sqlx::query_as!(UserPublic, "SELECT id, username, email, created_at, best_before from users")
+    let result = sqlx::query_as!(UserPublic, "SELECT id, username, email, created_at from users")
     .fetch_all(&app_state.db)
     .await.unwrap();
 
@@ -16,7 +16,7 @@ pub async fn users_get(app_state: web::Data<AppState>) -> impl Responder {
 pub async fn users_current_get(req: HttpRequest, app_state: web::Data<AppState>) -> impl Responder {
     let user_id = req.extensions().get::<Claims>().unwrap().id;
 
-    let result = sqlx::query_as!(UserPublic, "SELECT id, username, email, created_at, best_before from users where id = $1", user_id)
+    let result = sqlx::query_as!(UserPublic, "SELECT id, username, email, created_at from users where id = $1", user_id)
     .fetch_one(&app_state.db)
     .await.unwrap();
 
@@ -27,11 +27,10 @@ pub async fn users_current_get(req: HttpRequest, app_state: web::Data<AppState>)
 pub async fn users_post(body: web::Json<UserBody>, app_state: web::Data<AppState>) -> impl Responder {
     let password_hash = body.password.to_string();
 
-    let result = sqlx::query_as!(User, "INSERT into users(username, email, password_hash, best_before) values($1, $2, $3, $4) returning *", 
+    let result = sqlx::query_as!(User, "INSERT into users(username, email, password_hash) values($1, $2, $3) returning *", 
         body.username.to_string(),
         body.email.to_string(),
-        password_hash,
-        body.best_before
+        password_hash
     )
     .fetch_one(&app_state.db)
     .await.unwrap();
@@ -44,11 +43,10 @@ pub async fn users_put(path: web::Path<i32>, body: web::Json<UserBody>, app_stat
     let id = path.into_inner();
     let password_hash = body.password.to_string();
 
-    let result = sqlx::query_as!(User, "UPDATE users set username = $1, email = $2, password_hash = $3, best_before = $4 where id = $5 returning *", 
+    let result = sqlx::query_as!(User, "UPDATE users set username = $1, email = $2, password_hash = $3 where id = $4 returning *", 
         body.username.to_string(),
         body.email.to_string(),
         password_hash,
-        body.best_before,
         id
     )
     .fetch_one(&app_state.db)

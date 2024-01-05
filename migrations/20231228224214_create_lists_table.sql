@@ -1,6 +1,7 @@
 CREATE TABLE lists (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    best_before INTEGER NOT NULL DEFAULT 1
 );
 

@@ -23,3 +23,8 @@ pub struct User {
     pub password_hash: String,
     pub created_at: chrono::NaiveDateTime,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserPasswordBody {
+    pub password: String,
+}

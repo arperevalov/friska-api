@@ -1,5 +1,6 @@
+use crate::hasher::hash_password;
 use crate::models::auth::Claims;
-use crate::models::users::{User, UserBody, UserPublic};
+use crate::models::users::{User, UserBody, UserPublic, UserPasswordBody};
 use crate::AppState;
 use actix_web::{get, post, put, delete, HttpResponse, Responder, web, HttpRequest, HttpMessage};
 
@@ -22,6 +23,28 @@ pub async fn users_current_get(req: HttpRequest, app_state: web::Data<AppState>)
 
     HttpResponse::Ok().json(serde_json::json!(result))
 }
+
+#[put("/users/current/")]
+pub async fn users_current_put(req: HttpRequest, body: web::Json<UserPasswordBody>, app_state: web::Data<AppState>) -> impl Responder {
+    let user_id = req.extensions().get::<Claims>().unwrap().id;
+
+    let password_hash = hash_password(String::from(&body.password));
+
+    let result = sqlx::query_as!(User, "UPDATE users set password_hash = $1 where id = $2 returning *", password_hash, user_id)
+    .fetch_one(&app_state.db)
+    .await;
+
+    match result {
+        Ok(_) => {
+            HttpResponse::Ok()
+        },
+        Err(_) => {
+            HttpResponse::InternalServerError()
+        }
+    }
+
+}
+
 
 #[post("/users")]
 pub async fn users_post(body: web::Json<UserBody>, app_state: web::Data<AppState>) -> impl Responder {
